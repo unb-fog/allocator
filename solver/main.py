@@ -1,4 +1,5 @@
 from confluent_kafka import Consumer, KafkaException, KafkaError
+from confluent_kafka import Producer
 import json
 import numpy as np
 import math 
@@ -24,7 +25,10 @@ def solution(json_str):
         sw = vimported['sw'] 
         maxprice = vimported['maxprice']
         qtdepedidoimp = vimported['count']
-        
+        idx = vimported['idx']
+       
+        return_data = []
+
         #Parameters
         M = len(m)
         N = len(o)+len(s)
@@ -41,15 +45,15 @@ def solution(json_str):
                 passou.append(0)
                 
         if qtdepedido > qtdepassou:
-            print("Máquinas insuficientes")
+            return_data.append("Máquinas insuficientes")
 
         # Restrições
         if(ow[0]+ow[1]+ow[2]+ow[3]+sw[0]+sw[1]+sw[2]+sw[3]!=1):
-            print("########################################")
-            print("########################################")
-            print("           ATENÇÃO:Pesos errados       ")
-            print("########################################")
-            print("########################################")
+            return_data.append("########################################")
+            return_data.append("########################################")
+            return_data.append("           ATENÇÃO:Pesos errados       ")
+            return_data.append("########################################")
+            return_data.append("########################################")
 
         #Valores normalizados
         normal_cpu = 0
@@ -140,7 +144,7 @@ def solution(json_str):
 
             for i in range(0,M):
                 if custobeneficio[i] == melhorcb and custobeneficio[i] != 999999:
-                    print("Maquina %d melhor custo beneficio (USER) = %.2f"%(i+1, custobeneficio[i]))
+                    return_data.append("Maquina %d melhor custo beneficio (USER) = %.2f"%(i+1, custobeneficio[i]))
                     livre[i] = 1
         
         #Calculo do melhor custo beneficio com máquina mais justa (provedor)
@@ -162,8 +166,18 @@ def solution(json_str):
                     custobeneficio.append(999999)
             for i in range(0,M):
                 if custobeneficio[i] == melhorcbprov and custobeneficio[i] != 0:
-                    print("Maquina %d melhor custo beneficio (PROVEDOR) = %.2f"%(i+1, custobeneficio[i]))
+                    return_data.append("Maquina %d melhor custo beneficio (PROVEDOR) = %.2f"%(i+1, custobeneficio[i]))
                     livre[i] = 1
+
+    content = "\n".join(return_data)
+    createTopic(json.dumps({"content":content, "idx":idx}), str(idx))
+
+def delivery_callback(err, msg):
+    if err:
+        print('%% Message failed delivery: %s\n', err)
+    else:
+        print('%% Message delivered to %s [%d]\n',
+                          (msg.topic(), msg.partition()))
 
 def createConsumer():
     topics = ['allocation']
@@ -187,13 +201,36 @@ def createConsumer():
             if msg.error():
                 print( msg.error )
             else:
-                print("CHECKPOINT----------->")
-                print(msg.value().decode('utf-8'))
-                #print(msg.value().decode('utf-8'))
-                print("<-------CHECKPOINT")
                 solution(msg.value().decode('utf-8'))
     except KeyboardInterrupt:        
         sys.stderr.write('%% Aborted by user\n')    
         c.close()
+
+def createTopic(data, topic):
+    round(time.time() * 1000)
+    topic = topic
+    bootstrapServers = 'kafka:9092'
+    #username = 'nome-do-usuario'
+    #password = 'senha-do-usuario'
+    conf = {
+        'bootstrap.servers': bootstrapServers,
+        'session.timeout.ms': 6000,
+        'default.topic.config': {'auto.offset.reset': 'smallest'},
+        #'security.protocol': 'SASL_SSL',
+            #'sasl.mechanisms': 'SCRAM-SHA-256',
+        #'sasl.username': username,
+        #'sasl.password': password
+    }
+
+    p = Producer(conf)
+
+    try:
+        p.produce(topic, data, callback=delivery_callback)
+    except BufferError as e:
+        print('%% Local producer queue is full (%d messages awaiting delivery): try again\n',len(p))
+        p.poll(0)
+
+    print('%% Waiting for %d deliveries\n' % len(p))
+    p.flush()
 
 createConsumer()

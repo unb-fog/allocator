@@ -47,7 +47,7 @@ services:
     image: fogallocator/api
     restart: always
     ports:
-      - "8000:8000"
+      - "8080:8000"
     volumes:
       - "./api/main.py:/main.py"
   solver:
