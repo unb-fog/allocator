@@ -1,6 +1,8 @@
 from typing import Union
 from fastapi import FastAPI
+from pydantic import BaseModel
 from confluent_kafka import Producer
+import json
 
 def delivery_callback(err, msg):
     if err:
@@ -9,8 +11,9 @@ def delivery_callback(err, msg):
         print('%% Message delivered to %s [%d]\n',
                           (msg.topic(), msg.partition()))
 
-def createTopic(q):    
-    topic = 'nome-do-topico'
+def createTopic(data):    
+    print(data)
+    topic = 'allocation'
     bootstrapServers = 'kafka:9092'
     #username = 'nome-do-usuario'
     #password = 'senha-do-usuario'
@@ -27,7 +30,6 @@ def createTopic(q):
     p = Producer(conf)
 
     try:
-        data = q
         p.produce(topic, data, callback=delivery_callback)
     except BufferError as e:
         print('%% Local producer queue is full (%d messages awaiting delivery): try again\n',len(p))    
@@ -36,13 +38,21 @@ def createTopic(q):
     print('%% Waiting for %d deliveries\n' % len(p))
     p.flush()
 
+class Parameters(BaseModel):
+    o: list
+    ow: list
+    s: list
+    sw: list
+    maxprice: list
+    count: list
+
 app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    return {"It works"}
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    createTopic(q)
-    return {"item_id": item_id, "q": q}
+@app.post("/allocation/")
+async def create_item(request: Parameters):
+    createTopic(json.dumps(request.__dict__))
+    return request

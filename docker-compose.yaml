@@ -56,7 +56,9 @@ services:
       context: ./solver
       dockerfile: Dockerfile
     image: fogallocator/solver
-    restart: always 
+    restart: always
+    volumes:
+      - "./instances.json:/instances.json"
     healthcheck:
       test: ["CMD", "sleep", "20"]
       start_period: 20s
