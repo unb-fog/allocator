@@ -10,9 +10,6 @@ def solution(json_str):
         dataset = i
         arquivo = open(nome, 'r') 
         conteudo = arquivo.read()
-
-        print ("aquiiiiiii", conteudo)
-
         json_importado=conteudo
         vimported = json.loads(json_importado)
         m = vimported['m'] 
@@ -20,16 +17,13 @@ def solution(json_str):
         price = vimported['price']
         vetor_menorpreco = vimported['price']
         json_importado=json_str
-
-        print(json_str)
-
         vimported = json.loads(json_importado)
         o = vimported['o'] 
         ow = vimported['ow'] 
         s = vimported['s'] 
         sw = vimported['sw'] 
         maxprice = vimported['maxprice']
-        qtdepedidoimp = vimported['qtdepedido']
+        qtdepedidoimp = vimported['count']
         
         #Parameters
         M = len(m)
