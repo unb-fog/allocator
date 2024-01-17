@@ -2,21 +2,18 @@ from confluent_kafka import Consumer, KafkaException, KafkaError
 from confluent_kafka import Producer
 import json
 import numpy as np
-import math 
+import math
+import time
 
 def solution(json_str):
     for i in range(1,2):
-        #JSON DE ENTRADA DAS MÁQUINAS
         nome = '/instances.json'
-        dataset = i
         arquivo = open(nome, 'r') 
         conteudo = arquivo.read()
         json_importado=conteudo
         vimported = json.loads(json_importado)
         m = vimported['m'] 
-        maquinas = vimported['m'] 
         price = vimported['price']
-        vetor_menorpreco = vimported['price']
         json_importado=json_str
         vimported = json.loads(json_importado)
         o = vimported['o'] 
@@ -26,9 +23,8 @@ def solution(json_str):
         maxprice = vimported['maxprice']
         qtdepedidoimp = vimported['count']
         idx = vimported['idx']
-       
         return_data = []
-
+        
         #Parameters
         M = len(m)
         N = len(o)+len(s)
@@ -170,7 +166,10 @@ def solution(json_str):
                     livre[i] = 1
 
     content = "\n".join(return_data)
-    createTopic(json.dumps({"content":content, "idx":idx}), str(idx))
+    print(content)
+    content_json = json.dumps({"content":content, "idx":idx})
+    print(content_json)
+    createTopic(content_json, str(idx))
 
 def delivery_callback(err, msg):
     if err:
@@ -186,10 +185,6 @@ def createConsumer():
         'group.id': "%s-consumer" % 'allocation',
         'session.timeout.ms': 6000,
         'default.topic.config': {'auto.offset.reset': 'smallest'}
-        #'security.protocol': 'SASL_SSL',
-        #'sasl.mechanisms': 'SCRAM-SHA-256',
-        #'sasl.username': 'username',
-        #'sasl.password': 'password'    
         }    
     try:
         c = Consumer(conf)
@@ -207,23 +202,11 @@ def createConsumer():
         c.close()
 
 def createTopic(data, topic):
-    round(time.time() * 1000)
-    topic = topic
     bootstrapServers = 'kafka:9092'
-    #username = 'nome-do-usuario'
-    #password = 'senha-do-usuario'
     conf = {
         'bootstrap.servers': bootstrapServers,
-        'session.timeout.ms': 6000,
-        'default.topic.config': {'auto.offset.reset': 'smallest'},
-        #'security.protocol': 'SASL_SSL',
-            #'sasl.mechanisms': 'SCRAM-SHA-256',
-        #'sasl.username': username,
-        #'sasl.password': password
     }
-
     p = Producer(conf)
-
     try:
         p.produce(topic, data, callback=delivery_callback)
     except BufferError as e:
